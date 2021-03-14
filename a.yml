@@ -1,0 +1,44 @@
+- name: Dynamic Docker
+  hosts: localhost
+  vars_prompt:
+  - name: c_name
+    prompt: Enter Container Name
+    private: no
+
+  - name: ssh_port
+    prompt: Enter The Exposed Port For SSH
+    private: no
+  
+  - name: web_port
+    prompt: Enter The Exposed Port For WebServer
+    private: no
+  
+  tasks:
+  - name: Starting Docker Daemon
+    service:
+      name: docker
+      state: started
+
+  - name: Launching Container
+    docker_container:
+      name: "{{ c_name }}"
+      image: centos_ssh:v1
+      state: started
+      interactive: yes
+      tty: yes
+      ports:
+      - "{{ web_port }}:80"
+      - "{{ ssh_port }}:22"
+    register: x
+
+  - name: debugging
+    debug: 
+      var: x.container.NetworkSettings.IPAddress
+
+  - name: Updating Inventory
+    blockinfile:
+      path: ip.txt
+      block: |
+             [docker]
+             {{ x['container']['NetworkSettings']['IPAddress'] }} ansible_ssh_user=root ansible_ssh_pass=docker  ansible_connection=ssh
+ 
